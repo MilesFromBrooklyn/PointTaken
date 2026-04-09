@@ -2217,8 +2217,31 @@ const QS = [
   }
 ];
 
+// ═══ AIRLINE QUESTION (shown conditionally as Q6) ═══
+const AIRLINE_Q = {
+  id:'airline', icon:'✈️',
+  text:'Do you have a preferred airline?',
+  hint:'If you fly one airline most of the time, I can find the card that maximizes that loyalty.',
+  opts:[
+    {v:'united',   e:'🔵', l:'United',           d:'I fly United most often'},
+    {v:'american', e:'🔴', l:'American Airlines', d:'AA is my go-to carrier'},
+    {v:'delta',    e:'🟣', l:'Delta',             d:'I prefer Delta'},
+    {v:'none',     e:'🌐', l:'No preference',     d:'Show me the best overall travel card'},
+  ], twoCol:true
+};
+
+// Which card IDs belong to each airline (co-branded only)
+const AIRLINE_CARDS = {
+  united:   ['united-gateway','united-explorer','united-quest','united-club'],
+  american: ['aa-mileup','aa-platinum','aa-globe','aa-executive'],
+  delta:    ['delta-blue','delta-gold','delta-plat','delta-reserve'],
+};
+
+// Transferable points card IDs (never suppressed in no-preference mode)
+const TRANSFERABLE_IDS = ['csp','csr','amex-plat','amex-gold','venture-x','double-cash','cfu','citi-strata','citi-strata-premier','citi-strata-elite'];
+  
 // ═══ STATE ═══
-let qIdx=0, answers={}, selVal=null;
+let qIdx=0, answers={}, selVal=null, showingAirlineQ=false;
 
 // ═══ SCREENS ═══
 function show(id) {
@@ -2227,33 +2250,47 @@ function show(id) {
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-function startQuiz() { qIdx=0; answers={}; show('quiz'); renderQ(); }
+function startQuiz() { qIdx=0; answers={}; showingAirlineQ=false; show('quiz'); renderQ(); }
 function restart() { show('hero'); }
+
+// Returns true if this user should see the airline question
+function shouldShowAirlineQ() {
+  return answers.goal==='travel' || answers.goal==='both';
+}
 
 // ═══ QUIZ ═══
 function renderQ() {
-  const q=QS[qIdx], n=QS.length, pct=Math.round(((qIdx+1)/n)*100);
-  document.getElementById('q-label').textContent=`Question ${qIdx+1} of ${n}`;
+  const q = showingAirlineQ ? AIRLINE_Q : QS[qIdx];
+  const totalQ = shouldShowAirlineQ() ? QS.length+1 : QS.length;
+  const currentNum = showingAirlineQ ? QS.length+1 : qIdx+1;
+  const pct = Math.round((currentNum/totalQ)*100);
+
+  document.getElementById('q-label').textContent=`Question ${currentNum} of ${totalQ}`;
   document.getElementById('q-prog').style.width=pct+'%';
 
-  // Dots
-  document.getElementById('q-dots').innerHTML=QS.map((_,i)=>
-    `<div class="dot ${i<qIdx?'done':i===qIdx?'active':''}"></div>`).join('');
+  // Dots — show one per real question + 1 extra dot if airline Q is coming/showing
+  const dotCount = shouldShowAirlineQ() ? QS.length+1 : QS.length;
+  document.getElementById('q-dots').innerHTML=Array.from({length:dotCount},(_,i)=>{
+    const done = showingAirlineQ ? i<QS.length : i<qIdx;
+    const active = showingAirlineQ ? i===QS.length : i===qIdx;
+    return `<div class="dot ${done?'done':active?'active':''}"></div>`;
+  }).join('');
 
-  selVal=answers[q.id]||null;
+  selVal = showingAirlineQ ? (answers.airline||null) : (answers[q.id]||null);
+
   document.getElementById('q-body').innerHTML=`
     <div class="q-icon">${q.icon}</div>
     <div class="q-text">${q.text}</div>
     <div class="q-hint">${q.hint}</div>
     <div class="options${q.twoCol?' two-col':''}">
       ${q.opts.map(o=>`
-        <button class="opt${answers[q.id]===o.v?' sel':''}" onclick="pick('${o.v}',this)">
+        <button class="opt${selVal===o.v?' sel':''}" onclick="pick('${o.v}',this)">
           <div class="opt-em">${o.e}</div>
           <div><div class="opt-lbl">${o.l}</div><div class="opt-desc">${o.d}</div></div>
         </button>`).join('')}
     </div>`;
 
-  document.getElementById('btn-back').style.visibility=qIdx===0?'hidden':'visible';
+  document.getElementById('btn-back').style.visibility=(qIdx===0&&!showingAirlineQ)?'hidden':'visible';
   const nb=document.getElementById('btn-next');
   selVal?nb.classList.add('on'):nb.classList.remove('on');
 }
@@ -2267,25 +2304,103 @@ function pick(v,el) {
 
 function goNext() {
   if(!selVal) return;
+  if(showingAirlineQ) {
+    answers.airline=selVal;
+    showResults();
+    return;
+  }
   answers[QS[qIdx].id]=selVal;
-  if(qIdx<QS.length-1){qIdx++;renderQ();}
-  else showResults();
+  if(qIdx<QS.length-1) {
+    qIdx++;
+    renderQ();
+  } else {
+    // Last base question answered — check if airline Q is needed
+    if(shouldShowAirlineQ()) {
+      showingAirlineQ=true;
+      renderQ();
+    } else {
+      answers.airline='none';
+      showResults();
+    }
+  }
 }
 
 function goBack() {
+  if(showingAirlineQ) {
+    showingAirlineQ=false;
+    renderQ();
+    return;
+  }
   if(qIdx>0){answers[QS[qIdx].id]=selVal;qIdx--;renderQ();}
 }
 
 // ═══ SCORING ═══
-function scoreCards() {
+
+// Base scorer — used for all paths
+function baseScore(c) {
   const w={goal:4,spend:3,fee:3,credit:5,travel:2};
-  return CARDS.map(c=>{
-    if(!c.creditReq.includes(answers.credit)) return {...c,score:0};
-    let s=0;
-    for(const[k,v] of Object.entries(answers))
-      if(c.tags[k]&&c.tags[k].includes(v)) s+=w[k]||1;
-    return {...c,score:s};
-  }).filter(c=>c.score>0).sort((a,b)=>b.score-a.score).slice(0,3);
+  if(!c.creditReq.includes(answers.credit)) return 0;
+  let s=0;
+  const answersToScore={goal:answers.goal,spend:answers.spend,fee:answers.fee,credit:answers.credit,travel:answers.travel};
+  for(const[k,v] of Object.entries(answersToScore))
+    if(c.tags[k]&&c.tags[k].includes(v)) s+=w[k]||1;
+  return s;
+}
+
+// All co-branded airline card IDs (flat list)
+function allAirlineCardIds() {
+  return Object.values(AIRLINE_CARDS).reduce((a,b)=>a.concat(b),[]);
+}
+
+function scoreCards() {
+  const airline = answers.airline || 'none';
+
+  // CASHBACK PATH — no airline cards ever
+  if(answers.goal==='cashback') {
+    return CARDS
+      .filter(c=>!allAirlineCardIds().includes(c.id))
+      .map(c=>({...c,score:baseScore(c)}))
+      .filter(c=>c.score>0)
+      .sort((a,b)=>b.score-a.score)
+      .slice(0,3);
+  }
+
+  // SPECIFIC AIRLINE PATH
+  if(airline!=='none') {
+    const airlineIds = AIRLINE_CARDS[airline] || [];
+
+    // Score and pick top 2 from chosen airline
+    const airlineResults = CARDS
+      .filter(c=>airlineIds.includes(c.id))
+      .map(c=>({...c,score:baseScore(c)}))
+      .filter(c=>c.score>0)
+      .sort((a,b)=>b.score-a.score)
+      .slice(0,2);
+
+    // If fewer than 2 airline cards qualify, fill up
+    const airlineFinal = airlineResults.length>0
+      ? airlineResults
+      : CARDS.filter(c=>airlineIds.includes(c.id)).slice(0,2);
+
+    // Pick best transferable card that isn't an airline co-brand
+    const transferable = CARDS
+      .filter(c=>TRANSFERABLE_IDS.includes(c.id))
+      .map(c=>({...c,score:baseScore(c)}))
+      .filter(c=>c.score>0)
+      .sort((a,b)=>b.score-a.score)[0];
+
+    const results = [...airlineFinal];
+    if(transferable) results.push(transferable);
+    return results;
+  }
+
+  // NO PREFERENCE PATH — transferable cards biased up, airline co-brands suppressed
+  return CARDS
+    .filter(c=>!allAirlineCardIds().includes(c.id))
+    .map(c=>({...c,score:baseScore(c)}))
+    .filter(c=>c.score>0)
+    .sort((a,b)=>b.score-a.score)
+    .slice(0,3);
 }
 
 // ═══ RESULTS ═══
@@ -2294,8 +2409,7 @@ function showResults() {
   setTimeout(()=>{
     const top=scoreCards();
     if(top.length===0) {
-      // fallback if no matches
-      const fallback=CARDS.filter(c=>c.annualFee===0);
+      const fallback=CARDS.filter(c=>c.annualFee===0&&!allAirlineCardIds().includes(c.id));
       buildResults(fallback.slice(0,2));
     } else {
       buildResults(top);
@@ -2306,13 +2420,32 @@ function showResults() {
 }
 
 function buildResults(cards) {
+  const airline=answers.airline||'none';
+  const airlineNames={united:'United',american:'American Airlines',delta:'Delta'};
   const gMap={travel:'Travel Rewards',cashback:'Cash Back',both:'Flexible Rewards'};
-  document.getElementById('r-title').textContent=`Your Top ${gMap[answers.goal]||'Rewards'} Picks`;
-  document.getElementById('r-sub').textContent='Tap any card to see the full breakdown — credits, perks, and fee math included.';
-  document.getElementById('r-cards').innerHTML=cards.map((c,i)=>buildRC(c,i)).join('');
+
+  let title=`Your Top ${gMap[answers.goal]||'Rewards'} Picks`;
+  let sub='Tap any card to see the full breakdown — credits, perks, and fee math included.';
+
+  if(airline!=='none') {
+    title=`Your Top ${airlineNames[airline]} Picks`;
+    sub=`Your best ${airlineNames[airline]} cards for your spending profile — plus one transferable points alternative.`;
+  }
+
+  document.getElementById('r-title').textContent=title;
+  document.getElementById('r-sub').textContent=sub;
+
+  // For airline path: last card is the transferable alternative — label it differently
+  const isAirlinePath = airline!=='none' && cards.length===3;
+  const rankLabels=['🏆 Best Match','🥈 Runner-Up','💡 Also Consider: Transferable Points'];
+
+  document.getElementById('r-cards').innerHTML=cards.map((c,i)=>{
+    const label = isAirlinePath ? rankLabels[i] : ['🏆 Best Match','🥈 Runner-Up','🥉 Also Great'][i];
+    return buildRC(c,i,label);
+  }).join('');
 }
 
-function buildRC(c,rank) {
+function buildRC(c,rank,customLabel) {
   const isBest=rank===0;
   const ef=c.annualFee-c.totalCreditValue;
   const efText=ef<=0?`Net +$${Math.abs(ef)}/yr after credits`:`$${ef}/yr after credits`;
@@ -2341,7 +2474,7 @@ function buildRC(c,rank) {
   <div class="result-card${isBest?' best':''}" id="rc-${c.id}">
     <div class="rc-top" onclick="toggleRC('${c.id}')">
       <div class="rc-left">
-        <div class="rc-rank">${rankLabels[rank]}</div>
+        <div class="rc-rank">${customLabel||rankLabels[rank]}</div>
         <div class="rc-name">${c.name}</div>
         <div class="rc-issuer">${c.issuer}</div>
       </div>
