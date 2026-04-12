@@ -5,7 +5,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: 'index.html',
-        // tracker: 'tracker.html', — add this in Task 6 when tracker.html is created
+        tracker: 'tracker.html',
       },
     },
   },
