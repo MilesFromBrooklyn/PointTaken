@@ -67,7 +67,7 @@ export const CARDS = [
     perks: ['5x on flights booked directly with airlines or via Amex Travel','5x on prepaid hotels booked via Amex Travel','1x on everything else','Centurion Lounge + Priority Pass (1,550+ lounges)','10 Delta SkyClub visits/yr (eligible Delta flights)','Fine Hotels + Resorts benefits','Hilton & Marriott Gold status'],
     credits: [
       { name: '$600 Annual Hotel Credit', desc: '$300 semi-annually on prepaid Fine Hotels + Resorts or The Hotel Collection bookings via Amex Travel (2-night minimum for Hotel Collection)', value: 600, cadence: 'semi-annual' },
-      { name: '$400 Resy Dining Credit', desc: '$100/quarter at U.S. Resy-affiliated restaurants (enrollment required)', value: 400, cadence: 'annual' },
+      { name: '$400 Resy Dining Credit', desc: '$100/quarter at U.S. Resy-affiliated restaurants (enrollment required)', value: 400, cadence: 'quarterly' },
       { name: '$300 Digital Entertainment Credit', desc: '$25/mo toward Disney+, Hulu, ESPN+, Peacock, NYT, WSJ, Paramount+, YouTube Premium, or YouTube TV (enrollment required)', value: 300, cadence: 'monthly' },
       { name: '$200 Airline Fee Credit', desc: 'Incidental fees (checked bags, seat upgrades, lounge day passes) on one selected airline per year', value: 200, cadence: 'annual' },
       { name: '$200 Uber Cash', desc: '$15/mo + $20 bonus in December for U.S. Uber rides or Uber Eats', value: 200, cadence: 'monthly' },

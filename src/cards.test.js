@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { CARDS } from './cards.js';
 
-const VALID_CADENCES = ['monthly', 'semi-annual', 'annual', 'excluded'];
+const VALID_CADENCES = ['monthly', 'semi-annual', 'annual', 'quarterly', 'excluded'];
 
 describe('CARDS data integrity', () => {
   it('every card has an id, name, and issuer', () => {
