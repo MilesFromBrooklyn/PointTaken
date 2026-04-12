@@ -10,6 +10,11 @@ export function getCurrentPeriodKey(cadence, today = new Date(), anniversaryMont
   const year = today.getFullYear();
   const month = today.getMonth() + 1; // 1-based
 
+  // Clamp anniversaryDay to 1–28 to prevent month overflow in Date constructor
+  if (cadence === 'annual') {
+    anniversaryDay = Math.min(28, Math.max(1, anniversaryDay));
+  }
+
   if (cadence === 'monthly') {
     return `${year}-${String(month).padStart(2, '0')}`;
   }
@@ -36,12 +41,17 @@ export function getCurrentPeriodKey(cadence, today = new Date(), anniversaryMont
  * @param {'monthly'|'semi-annual'|'quarterly'|'annual'} cadence
  * @param {Date} today
  * @param {number} anniversaryMonth
- * @param {number} anniversaryDay
+ * @param {number} anniversaryDay    1–28 (clamped)
  * @returns {Date}
  */
 export function getPeriodEndDate(cadence, today = new Date(), anniversaryMonth = 1, anniversaryDay = 1) {
   const year = today.getFullYear();
   const month = today.getMonth() + 1;
+
+  // Clamp anniversaryDay to 1–28 to prevent month overflow in Date constructor
+  if (cadence === 'annual') {
+    anniversaryDay = Math.min(28, Math.max(1, anniversaryDay));
+  }
 
   if (cadence === 'monthly') {
     return new Date(year, month, 0); // day 0 of next month = last day of current month
@@ -88,8 +98,8 @@ export function getDaysUntilPeriodEnd(cadence, today = new Date(), anniversaryMo
   const daysDiff = (endStartOfDay - todayStartOfDay) / msPerDay;
 
   // If same day or very close, return 1 (last day remaining)
-  // Otherwise return the full difference floored
-  return Math.max(1, Math.floor(daysDiff));
+  // Otherwise return the full difference rounded
+  return Math.max(1, Math.round(daysDiff));
 }
 
 /**

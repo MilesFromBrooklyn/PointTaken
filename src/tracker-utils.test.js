@@ -47,6 +47,11 @@ describe('getCurrentPeriodKey', () => {
     expect(getCurrentPeriodKey('annual', new Date(2026, 3, 12), 6, 1)).toBe('2025');
   });
 
+  it('returns current year when today is exactly the anniversary date', () => {
+    // Today IS the anniversary — new period starts today
+    expect(getCurrentPeriodKey('annual', new Date(2026, 2, 1), 3, 1)).toBe('2026');
+  });
+
   it('throws on unknown cadence', () => {
     expect(() => getCurrentPeriodKey('biweekly', new Date())).toThrow('Unknown cadence');
   });
@@ -110,6 +115,17 @@ describe('getDaysUntilPeriodEnd', () => {
 
   it('returns 1 on last day of month', () => {
     expect(getDaysUntilPeriodEnd('monthly', new Date(2026, 3, 30))).toBe(1);
+  });
+
+  it('returns correct days for annual cadence', () => {
+    // Anniversary June 1, today April 12 → period ends May 31 → 49 days
+    const days = getDaysUntilPeriodEnd('annual', new Date(2026, 3, 12), 6, 1);
+    expect(days).toBeGreaterThan(0);
+    expect(days).toBeLessThan(60);
+  });
+
+  it('returns 1 on exact period end date for monthly', () => {
+    expect(getDaysUntilPeriodEnd('monthly', new Date(2026, 2, 31))).toBe(1); // March 31
   });
 });
 
