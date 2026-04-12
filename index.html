@@ -1188,6 +1188,31 @@ body::after {
 }
 .footer-link:hover { color: var(--rust); border-color: var(--rust); }
 
+/* ── BACK TO TOP ── */
+.back-to-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 20px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1.5px solid var(--forest);
+  border-radius: 4px;
+  color: var(--forest);
+  font-family: 'Lato', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+.back-to-top:hover {
+  background: var(--forest);
+  color: var(--white);
+}
+
 /* ── DETAIL MODAL ── */
 .modal-overlay {
   display: none;
@@ -1472,6 +1497,7 @@ body::after {
 </style>
 </head>
 <body>
+<a id="top"></a>
 
 <div class="page">
 
@@ -1635,6 +1661,7 @@ body::after {
     <div style="max-width:380px">
       For informational purposes only. Card terms, rates, and bonuses change — always verify on the issuer's site before applying. Reward estimates assume stated earn rates and point values; your results will vary.
     </div>
+    <a href="#top" class="back-to-top">↑ Back to top</a>
   </footer>
 </div>
 
