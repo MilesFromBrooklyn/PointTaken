@@ -1,7 +1,5 @@
 import { CARDS, BROWSE_CATS, TAG_META } from './cards.js';
 
-// CARD DATA moved to src/cards.js
-
 const CATS = [
   { id:'groceries',  label:'Groceries',                      ph:'400' },
   { id:'dining',     label:'Dining & Restaurants',            ph:'300' },
