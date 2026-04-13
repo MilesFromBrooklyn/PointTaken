@@ -219,36 +219,38 @@ function renderWallet(app) {
 function renderDashboard(app) {
   const today = new Date();
 
-  const expiring = [];
-  for (const uc of userCards) {
-    const card = CARDS.find(c => c.id === uc.card_id);
-    if (!card) continue;
-    for (const b of card.credits) {
-      if (b.cadence === 'excluded') continue;
-      const periodKey = getCurrentPeriodKey(b.cadence, today, uc.anniversary_month, uc.anniversary_day);
-      const key = `${uc.card_id}__${b.name}__${periodKey}`;
-      if (!usedBenefits.has(key) && isExpiringSoon(b.cadence, today, uc.anniversary_month, uc.anniversary_day)) {
-        expiring.push({
-          card, benefit: b, uc,
-          daysLeft: getDaysUntilPeriodEnd(b.cadence, today, uc.anniversary_month, uc.anniversary_day),
-        });
+  // Use It or Lose It — suppressed in guest mode (no real usage data)
+  const expiringHtml = guestMode ? '' : (() => {
+    const expiring = [];
+    for (const uc of userCards) {
+      const card = CARDS.find(c => c.id === uc.card_id);
+      if (!card) continue;
+      for (const b of card.credits) {
+        if (b.cadence === 'excluded') continue;
+        const periodKey = getCurrentPeriodKey(b.cadence, today, uc.anniversary_month, uc.anniversary_day);
+        const key = `${uc.card_id}__${b.name}__${periodKey}`;
+        if (!usedBenefits.has(key) && isExpiringSoon(b.cadence, today, uc.anniversary_month, uc.anniversary_day)) {
+          expiring.push({
+            card, benefit: b, uc,
+            daysLeft: getDaysUntilPeriodEnd(b.cadence, today, uc.anniversary_month, uc.anniversary_day),
+          });
+        }
       }
     }
-  }
-  expiring.sort((a, b) => a.daysLeft - b.daysLeft);
-
-  const expiringHtml = expiring.length === 0 ? '' : `
-    <div class="expiring-panel">
-      <div class="expiring-title">Use It or Lose It</div>
-      ${expiring.map(e => `
-        <div class="expiring-row">
-          <span class="expiring-card">${e.card.name}</span>
-          <span class="expiring-benefit">${e.benefit.name}</span>
-          <span class="expiring-days">${e.daysLeft}d left</span>
-        </div>
-      `).join('')}
-    </div>
-  `;
+    expiring.sort((a, b) => a.daysLeft - b.daysLeft);
+    return expiring.length === 0 ? '' : `
+      <div class="expiring-panel">
+        <div class="expiring-title">Use It or Lose It</div>
+        ${expiring.map(e => `
+          <div class="expiring-row">
+            <span class="expiring-card">${e.card.name}</span>
+            <span class="expiring-benefit">${e.benefit.name}</span>
+            <span class="expiring-days">${e.daysLeft}d left</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  })();
 
   const cardsHtml = userCards.map(uc => {
     const card = CARDS.find(c => c.id === uc.card_id);
@@ -258,17 +260,20 @@ function renderDashboard(app) {
 
     let usedValue = 0;
     let totalValue = 0;
-    const rowsHtml = trackable.map(b => {
+    const rowsHtml = trackable.map((b, i) => {
       const periodKey = getCurrentPeriodKey(b.cadence, today, uc.anniversary_month, uc.anniversary_day);
       const key = `${uc.card_id}__${b.name}__${periodKey}`;
       const used = usedBenefits.has(key);
       totalValue += b.value;
       if (used) usedValue += b.value;
+      const rowId = `br-${uc.card_id}-${i}`;
+      const onchange = guestMode
+        ? `dashGuestClick(this, '${rowId}')`
+        : `dashToggle(${JSON.stringify(uc.card_id)}, ${JSON.stringify(b.name)}, '${b.cadence}', ${uc.anniversary_month}, ${uc.anniversary_day})`;
       return `
-        <div class="benefit-row ${used ? 'used' : ''}">
+        <div class="benefit-row ${used ? 'used' : ''}" id="${rowId}">
           <label class="benefit-label">
-            <input type="checkbox" ${used ? 'checked' : ''}
-              onchange="dashToggle(${JSON.stringify(uc.card_id)}, ${JSON.stringify(b.name)}, '${b.cadence}', ${uc.anniversary_month}, ${uc.anniversary_day})">
+            <input type="checkbox" ${used ? 'checked' : ''} onchange="${onchange}">
             <span class="benefit-name">${b.name}</span>
           </label>
           <span class="benefit-cadence cadence-${b.cadence}">${b.cadence}</span>
@@ -288,14 +293,24 @@ function renderDashboard(app) {
     `;
   }).join('');
 
+  const bannerHtml = guestMode ? `
+    <div class="guest-banner">
+      <span class="guest-banner-text">👀 Preview mode — Sign in to track your own cards and save your progress.</span>
+      <button class="guest-banner-btn" onclick="guestSignIn()">Sign In →</button>
+    </div>
+  ` : '';
+
+  const headerActionsHtml = guestMode
+    ? `<button class="btn-secondary" onclick="guestSignIn()">Sign In</button>`
+    : `<a href="?wallet" class="btn-secondary">Edit Wallet</a>
+       <button class="btn-secondary" onclick="dashSignOut()">Sign out</button>`;
+
   app.innerHTML = `
     <div class="dashboard-header">
       <h1>My Benefits</h1>
-      <div class="dashboard-actions">
-        <a href="?wallet" class="btn-secondary">Edit Wallet</a>
-        <button class="btn-secondary" onclick="dashSignOut()">Sign out</button>
-      </div>
+      <div class="dashboard-actions">${headerActionsHtml}</div>
     </div>
+    ${bannerHtml}
     ${expiringHtml}
     ${cardsHtml}
   `;
@@ -306,5 +321,22 @@ function renderDashboard(app) {
 
   window.dashSignOut = async () => {
     await supabase.auth.signOut();
+  };
+
+  window.guestSignIn = () => {
+    guestMode = false;
+    render();
+  };
+
+  window.dashGuestClick = (checkbox, rowId) => {
+    checkbox.checked = false; // snap back
+    const row = document.getElementById(rowId);
+    const existing = row.querySelector('.guest-nudge');
+    if (existing) { clearTimeout(existing._timer); existing.remove(); }
+    const nudge = document.createElement('p');
+    nudge.className = 'guest-nudge';
+    nudge.innerHTML = '<a href="#" onclick="guestSignIn(); return false;">Sign in to save your progress →</a>';
+    nudge._timer = setTimeout(() => nudge.remove(), 4000);
+    row.appendChild(nudge);
   };
 }
