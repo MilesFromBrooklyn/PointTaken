@@ -8,6 +8,7 @@ let session = null;
 let userCards = [];
 let usedBenefits = new Set();
 let guestMode = true; // show demo dashboard by default when unauthenticated
+let nudgeTimer = null;
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -217,6 +218,7 @@ function renderWallet(app) {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 function renderDashboard(app) {
+  if (nudgeTimer) { clearTimeout(nudgeTimer); nudgeTimer = null; }
   const today = new Date();
 
   // Use It or Lose It — suppressed in guest mode (no real usage data)
@@ -331,12 +333,13 @@ function renderDashboard(app) {
   window.dashGuestClick = (checkbox, rowId) => {
     checkbox.checked = false; // snap back
     const row = document.getElementById(rowId);
+    if (nudgeTimer) { clearTimeout(nudgeTimer); nudgeTimer = null; }
     const existing = row.querySelector('.guest-nudge');
-    if (existing) { clearTimeout(existing._timer); existing.remove(); }
+    if (existing) existing.remove();
     const nudge = document.createElement('p');
     nudge.className = 'guest-nudge';
     nudge.innerHTML = '<a href="#" onclick="guestSignIn(); return false;">Sign in to save your progress →</a>';
-    nudge._timer = setTimeout(() => nudge.remove(), 4000);
+    nudgeTimer = setTimeout(() => { nudge.remove(); nudgeTimer = null; }, 4000);
     row.appendChild(nudge);
   };
 }
