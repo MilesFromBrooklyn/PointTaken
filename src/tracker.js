@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function render() {
   const app = document.getElementById('app');
   if (!session && !guestMode) { renderAuth(app); return; }
-  if (!session && guestMode)  { loadGuestData(); renderDashboard(app); return; }
+  if (!session && guestMode)  { if (!userCards.length) loadGuestData(); renderDashboard(app); return; }
   await loadData();
   const showWallet = new URLSearchParams(window.location.search).has('wallet')
     || userCards.length === 0;
