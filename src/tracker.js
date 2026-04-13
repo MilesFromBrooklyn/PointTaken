@@ -7,6 +7,7 @@ import { getCurrentPeriodKey, isExpiringSoon, getDaysUntilPeriodEnd } from './tr
 let session = null;
 let userCards = [];
 let usedBenefits = new Set();
+let guestMode = true; // show demo dashboard by default when unauthenticated
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -23,7 +24,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ── Router ────────────────────────────────────────────────────────────────────
 async function render() {
   const app = document.getElementById('app');
-  if (!session) { renderAuth(app); return; }
+  if (!session && !guestMode) { renderAuth(app); return; }
+  if (!session && guestMode)  { loadGuestData(); renderDashboard(app); return; }
   await loadData();
   const showWallet = new URLSearchParams(window.location.search).has('wallet')
     || userCards.length === 0;
@@ -55,6 +57,15 @@ async function loadData() {
     .eq('user_id', uid)
     .in('period_key', [...periodKeys]);
   usedBenefits = new Set((usage || []).map(u => `${u.card_id}__${u.benefit_name}__${u.period_key}`));
+}
+
+function loadGuestData() {
+  userCards = [
+    { card_id: 'csp',       anniversary_month: 1, anniversary_day: 1 },
+    { card_id: 'amex-gold', anniversary_month: 1, anniversary_day: 1 },
+    { card_id: 'venture-x', anniversary_month: 1, anniversary_day: 1 },
+  ];
+  usedBenefits = new Set();
 }
 
 async function toggleBenefit(cardId, benefitName, cadence, anniversaryMonth, anniversaryDay) {
