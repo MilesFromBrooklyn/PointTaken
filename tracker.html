@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Tracker — Point Taken</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --forest: #1e3a2f; --forest-mid: #2d5443; --forest-light: #3d6b54;
+      --rust: #c0541a; --parchment: #f7f3ec; --parchment-2: #ede8df;
+      --ink: #1a1a18; --muted: #7a7568; --white: #fdfcf9;
+      --green-pale: #eaf2ec; --green-text: #1e5c32;
+      --red-pale: #faecea; --red-text: #9b2a1a;
+      --border: rgba(30,58,47,0.12);
+      --shadow: 0 4px 24px rgba(30,58,47,0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Lato', sans-serif; background: var(--parchment); color: var(--ink); min-height: 100vh; font-size: 15px; line-height: 1.6; }
+
+    /* ── Layout ── */
+    #app { max-width: 760px; margin: 0 auto; padding: 32px 20px 80px; }
+
+    /* ── Auth ── */
+    .auth-container { max-width: 400px; margin: 80px auto 0; }
+    .auth-title { font-family: 'Instrument Serif', serif; font-size: 2rem; color: var(--forest); margin-bottom: 6px; }
+    .auth-sub { color: var(--muted); margin-bottom: 28px; }
+    .auth-card { background: var(--white); border: 1.5px solid var(--border); border-radius: 8px; padding: 28px; box-shadow: var(--shadow); }
+    .auth-tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 1.5px solid var(--border); }
+    .auth-tab { background: none; border: none; padding: 8px 16px; font-size: 0.9rem; font-weight: 700; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1.5px; }
+    .auth-tab.active { color: var(--forest); border-bottom-color: var(--forest); }
+    .auth-input { display: block; width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 4px; font-size: 0.95rem; margin-bottom: 12px; background: var(--parchment); }
+    .auth-input:focus { outline: none; border-color: var(--forest); }
+    .auth-submit { width: 100%; padding: 11px; background: var(--forest); color: var(--white); border: none; border-radius: 4px; font-size: 0.95rem; font-weight: 700; cursor: pointer; }
+    .auth-submit:hover { background: var(--forest-mid); }
+    .auth-divider { text-align: center; color: var(--muted); font-size: 0.8rem; margin: 14px 0; }
+    .auth-magic { width: 100%; padding: 10px; background: transparent; border: 1.5px solid var(--border); border-radius: 4px; font-size: 0.9rem; cursor: pointer; color: var(--forest); }
+    .auth-magic:hover { background: var(--parchment-2); }
+    .auth-message { margin-top: 12px; font-size: 0.85rem; min-height: 20px; }
+
+    /* ── Wallet ── */
+    .wallet-header { margin-bottom: 24px; }
+    .wallet-header h1 { font-family: 'Instrument Serif', serif; font-size: 1.8rem; color: var(--forest); }
+    .wallet-sub { color: var(--muted); margin-top: 4px; }
+    .wallet-card { border: 1.5px solid var(--border); border-radius: 6px; padding: 14px 16px; margin-bottom: 10px; background: var(--white); }
+    .wallet-card.owned { border-color: var(--forest-light); background: var(--green-pale); }
+    .wallet-card-label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .wallet-checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: var(--forest); }
+    .wallet-card-name { font-weight: 700; flex: 1; }
+    .wallet-card-issuer { color: var(--muted); font-size: 0.85rem; }
+    .wallet-anniversary { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .anniv-label { font-size: 0.85rem; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .anniv-select { padding: 4px 8px; border: 1.5px solid var(--border); border-radius: 4px; font-size: 0.85rem; background: var(--parchment); }
+    .anniv-day-input { width: 56px; padding: 4px 8px; border: 1.5px solid var(--border); border-radius: 4px; font-size: 0.85rem; background: var(--parchment); }
+    .wallet-save { margin-top: 20px; padding: 11px 28px; background: var(--forest); color: var(--white); border: none; border-radius: 4px; font-size: 0.95rem; font-weight: 700; cursor: pointer; }
+    .wallet-save:hover { background: var(--forest-mid); }
+
+    /* ── Dashboard ── */
+    .dashboard-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
+    .dashboard-header h1 { font-family: 'Instrument Serif', serif; font-size: 1.8rem; color: var(--forest); }
+    .dashboard-actions { display: flex; gap: 10px; }
+    .btn-secondary { padding: 7px 14px; background: transparent; border: 1.5px solid var(--forest); border-radius: 4px; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; color: var(--forest); text-decoration: none; }
+    .btn-secondary:hover { background: var(--forest); color: var(--white); }
+
+    /* ── Use It or Lose It ── */
+    .expiring-panel { background: #fff8ed; border: 1.5px solid #e8a730; border-radius: 8px; padding: 18px 20px; margin-bottom: 28px; }
+    .expiring-title { font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: #7a5200; margin-bottom: 12px; }
+    .expiring-row { display: flex; align-items: center; gap: 12px; padding: 7px 0; border-bottom: 1px solid rgba(232,167,48,0.2); }
+    .expiring-row:last-child { border-bottom: none; }
+    .expiring-card { font-size: 0.8rem; color: var(--muted); min-width: 140px; }
+    .expiring-benefit { flex: 1; font-size: 0.9rem; font-weight: 700; }
+    .expiring-days { font-size: 0.8rem; font-weight: 700; color: #c07000; white-space: nowrap; }
+
+    /* ── Card sections ── */
+    .card-section { border: 1.5px solid var(--border); border-radius: 8px; margin-bottom: 16px; background: var(--white); overflow: hidden; }
+    .card-section-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: var(--parchment-2); border-bottom: 1px solid var(--border); }
+    .card-section-name { font-weight: 700; font-size: 1rem; }
+    .card-section-progress { font-size: 0.82rem; color: var(--muted); }
+    .benefit-row { display: flex; align-items: center; gap: 12px; padding: 11px 18px; border-bottom: 1px solid var(--border); }
+    .benefit-row:last-child { border-bottom: none; }
+    .benefit-row.used { opacity: 0.45; }
+    .benefit-label { display: flex; align-items: center; gap: 10px; flex: 1; cursor: pointer; }
+    .benefit-label input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--forest); cursor: pointer; }
+    .benefit-name { font-size: 0.92rem; }
+    .benefit-cadence { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 7px; border-radius: 3px; white-space: nowrap; }
+    .cadence-monthly    { background: #e8f0fe; color: #1a56a0; }
+    .cadence-semi-annual { background: #e8f0fe; color: #1a56a0; }
+    .cadence-quarterly  { background: #e8f0fe; color: #1a56a0; }
+    .cadence-annual     { background: var(--green-pale); color: var(--green-text); }
+    .benefit-value { font-size: 0.85rem; font-weight: 700; color: var(--forest); white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/tracker.js"></script>
+</body>
+</html>
