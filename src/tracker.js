@@ -129,7 +129,10 @@ function renderAuth(app) {
     const email = document.getElementById('auth-email').value;
     const msg = document.getElementById('auth-message');
     if (!email) { msg.textContent = 'Enter your email first.'; return; }
-    const { error } = await supabase.auth.signInWithOtp({ email });
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: 'https://milesfrombrooklyn.github.io/PointTaken/tracker.html' },
+    });
     if (error) { msg.textContent = error.message; msg.style.color = 'var(--red-text)'; return; }
     msg.textContent = 'Magic link sent — check your email.';
     msg.style.color = 'var(--green-text)';
